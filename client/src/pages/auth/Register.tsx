@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,10 +32,19 @@ export default function Register() {
   const [, navigate] = useLocation();
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
-  // If already logged in, redirect to home
-  if (user || redirectTo) {
-    return <Redirect to={redirectTo || "/"} />;
-  }
+  // Handle redirection after authentication
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  // Handle redirection when redirectTo state changes
+  useEffect(() => {
+    if (redirectTo) {
+      navigate(redirectTo);
+    }
+  }, [redirectTo, navigate]);
 
   // Form setup
   const form = useForm<RegisterFormValues>({
@@ -57,6 +66,8 @@ export default function Register() {
     },
     onSuccess: (data) => {
       login(data.user);
+      // Reset form
+      form.reset();
       toast({
         title: "Registration successful",
         description: `Welcome to Bingo学, ${data.user.displayName}!`,
@@ -169,10 +180,8 @@ export default function Register() {
         <CardFooter className="flex flex-col">
           <div className="text-sm text-center text-gray-500 dark:text-gray-400">
             Already have an account?{" "}
-            <Link href="/login">
-              <a className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">
-                Login
-              </a>
+            <Link href="/login" className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">
+              Login
             </Link>
           </div>
         </CardFooter>
