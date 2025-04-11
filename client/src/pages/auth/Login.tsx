@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,10 +27,19 @@ export default function Login() {
   const [, navigate] = useLocation();
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
 
-  // If already logged in, redirect to home
-  if (user || redirectTo) {
-    return <Redirect to={redirectTo || "/"} />;
-  }
+  // Handle redirection after successful login
+  useEffect(() => {
+    if (user) {
+      navigate(user.isAdmin ? "/admin" : "/");
+    }
+  }, [user, navigate]);
+
+  // Handle redirection when redirectTo state changes
+  useEffect(() => {
+    if (redirectTo) {
+      navigate(redirectTo);
+    }
+  }, [redirectTo, navigate]);
 
   // Form setup
   const form = useForm<LoginFormValues>({
@@ -49,6 +58,8 @@ export default function Login() {
     },
     onSuccess: (data) => {
       login(data.user);
+      // Reset form
+      form.reset();
       toast({
         title: "Login successful",
         description: `Welcome back, ${data.user.displayName}!`,
