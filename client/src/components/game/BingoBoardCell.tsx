@@ -1,0 +1,89 @@
+import { HTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
+
+export type CellState = 'default' | 'selected' | 'correct' | 'incorrect';
+
+interface BingoBoardCellProps extends HTMLAttributes<HTMLDivElement> {
+  position: string;
+  content: string;
+  state: CellState;
+  animate?: boolean;
+  size?: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
+}
+
+export function BingoBoardCell({ 
+  position, 
+  content, 
+  state, 
+  animate = false,
+  size = 'medium',
+  className,
+  ...props 
+}: BingoBoardCellProps) {
+  const sizeClasses = {
+    small: 'text-xs',
+    medium: 'text-sm',
+    large: 'text-base',
+    xlarge: 'text-lg',
+    xxlarge: 'text-xl'
+  };
+
+  const stateClasses = {
+    default: 'bingo-cell-default',
+    selected: 'bingo-cell-selected',
+    correct: 'bingo-cell-correct',
+    incorrect: 'bingo-cell-incorrect'
+  };
+
+  const animationClass = animate ? (
+    state === 'selected' ? 'cell-select' : 
+    (state === 'correct' || state === 'incorrect') ? 'cell-reveal' : 
+    ''
+  ) : '';
+
+  const isActiveState = state === 'correct' || state === 'selected';
+
+  return (
+    <div 
+      className={cn(
+        'bingo-cell',
+        stateClasses[state],
+        animationClass,
+        className
+      )}
+      {...props}
+    >
+      <div className={`text-sm ${isActiveState ? 'text-primary-600 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'} mb-1`}>
+        {position}
+      </div>
+      <div className={cn(
+        'font-game font-medium text-center break-words',
+        sizeClasses[size],
+        {
+          'text-gray-900 dark:text-white': state === 'default',
+          'text-primary-900 dark:text-primary-100': state === 'selected',
+          'text-green-900 dark:text-green-100': state === 'correct',
+          'text-red-900 dark:text-red-100': state === 'incorrect'
+        }
+      )}>
+        {content}
+      </div>
+      {state === 'correct' && (
+        <div className="mt-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )}
+      {state === 'incorrect' && (
+        <div className="mt-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default BingoBoardCell;

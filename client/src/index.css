@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-poppins: "Poppins", sans-serif;
+    --font-inter: "Inter", sans-serif;
+    --font-game: "Quicksand", sans-serif;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-inter antialiased bg-background text-foreground;
+  }
+
+  h1, h2, h3 {
+    @apply font-poppins;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-[10px] dark:bg-gray-800;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary-200 rounded-[10px] dark:bg-primary-900;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-300 dark:bg-primary-800;
+  }
+
+  /* Bingo cell animations */
+  @keyframes cellReveal {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  
+  @keyframes cellSelect {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  @keyframes bingoLine {
+    0% { width: 0%; height: 5px; }
+    100% { width: 100%; height: 5px; }
+  }
+  
+  .cell-reveal {
+    animation: cellReveal 0.5s ease-out forwards;
+  }
+  
+  .cell-select {
+    animation: cellSelect 0.3s ease-in-out;
+  }
+  
+  .bingo-line {
+    animation: bingoLine 1s ease-out forwards;
+  }
+}
+
+@layer components {
+  .bingo-cell {
+    @apply aspect-square rounded-lg p-2 flex flex-col items-center justify-center transition-all shadow-sm;
+  }
+
+  .bingo-cell-default {
+    @apply bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 
+           cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600;
+  }
+
+  .bingo-cell-selected {
+    @apply bg-primary-100 dark:bg-primary-900 border-2 border-primary-500
+           cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-800;
+  }
+
+  .bingo-cell-correct {
+    @apply bg-green-100 dark:bg-green-900 border-2 border-green-500;
+  }
+
+  .bingo-cell-incorrect {
+    @apply bg-red-100 dark:bg-red-900 border-2 border-red-500;
+  }
+
+  .countdown-timer {
+    @apply w-12 h-12 flex items-center justify-center rounded-full 
+           bg-primary-100 dark:bg-primary-900 border-4 border-primary-500 
+           text-primary-800 dark:text-primary-200 font-bold text-xl;
+  }
+
+  .countdown-timer-low {
+    @apply border-red-500 text-red-600 dark:text-red-400;
+  }
+}
