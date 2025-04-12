@@ -52,6 +52,7 @@ export default function Host() {
   // Handle initial data load
   useEffect(() => {
     if (initialData) {
+      console.log('Initial game data loaded:', initialData);
       setGameData(initialData as any);
     }
   }, [initialData]);

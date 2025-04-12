@@ -62,6 +62,8 @@ interface GamePlayViewProps {
     answerTime?: number;
   };
   onAnswerSelect?: (cellId: string) => void;
+  onNextQuestion?: () => void;
+  onEndGame?: () => void;
 }
 
 export default function GamePlayView({
@@ -69,7 +71,9 @@ export default function GamePlayView({
   isHost = false,
   currentPlayerId,
   gameData,
-  onAnswerSelect
+  onAnswerSelect,
+  onNextQuestion,
+  onEndGame
 }: GamePlayViewProps) {
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
   const [previousQuestion, setPreviousQuestion] = useState<GameQuestion | null>(null);
@@ -386,6 +390,11 @@ export default function GamePlayView({
         type: 'next_question',
         gameId
       }));
+      
+      // Call the callback prop if provided
+      if (onNextQuestion) {
+        onNextQuestion();
+      }
     }
   };
 
@@ -396,6 +405,11 @@ export default function GamePlayView({
         type: 'end_game',
         gameId
       }));
+      
+      // Call the callback prop if provided
+      if (onEndGame) {
+        onEndGame();
+      }
     }
   };
 
