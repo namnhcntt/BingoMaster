@@ -1,0 +1,119 @@
+Uncaught (in promise) FrameDoesNotExistError: Frame 36 does not exist in tab 806542779
+    at DelayedMessageSender.<anonymous> (background.js:1:48217)
+819Unchecked runtime.lastError: The message port closed before a response was received.
+136Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+background.js:1  Uncaught (in promise) FrameDoesNotExistError: Frame 174 does not exist in tab 806542767
+    at DelayedMessageSender.<anonymous> (background.js:1:48217)
+client:536  WebSocket connection to 'wss://dee0d5b3-af75-47ae-a52b-5c49299e1b1f-00-2hku8s1dd8oob.janeway.replit.dev/?token=4MqybyennOse' failed: 
+setupWebSocket @ client:536
+(anonymous) @ client:531
+client:536  Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=4MqybyennOse' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)
+setupWebSocket @ client:536
+fallback @ client:509
+(anonymous) @ client:555
+completion_list.html:12 
+            
+            
+            GET chrome-extension://mfbcdcnpokpoajjciilocoachedjkima/utils.js net::ERR_FILE_NOT_FOUND
+completion_list.html:14 
+            
+            
+            GET chrome-extension://mfbcdcnpokpoajjciilocoachedjkima/heuristicsRedefinitions.js net::ERR_FILE_NOT_FOUND
+completion_list.html:13 
+            
+            
+            GET chrome-extension://mfbcdcnpokpoajjciilocoachedjkima/extensionState.js net::ERR_FILE_NOT_FOUND
+useWebSocket.tsx:33  WebSocket connection to 'wss://dee0d5b3-af75-47ae-a52b-5c49299e1b1f-00-2hku8s1dd8oob.janeway.replit.dev/ws/game/8a073ce2-e01d-4c95-9218-58b540cd3cdd/host' failed: 
+(anonymous) @ useWebSocket.tsx:33
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+performSyncWorkOnRoot @ react-dom.development.js:26115
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+useWebSocket.tsx:57  WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.tsx:57
+useWebSocket.tsx:33  WebSocket connection to 'wss://dee0d5b3-af75-47ae-a52b-5c49299e1b1f-00-2hku8s1dd8oob.janeway.replit.dev/ws/game/8a073ce2-e01d-4c95-9218-58b540cd3cdd/host' failed: 
+(anonymous) @ useWebSocket.tsx:33
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+performSyncWorkOnRoot @ react-dom.development.js:26115
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+useWebSocket.tsx:57  WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.tsx:57
+useWebSocket.tsx:33  WebSocket connection to 'wss://dee0d5b3-af75-47ae-a52b-5c49299e1b1f-00-2hku8s1dd8oob.janeway.replit.dev/ws/game/8a073ce2-e01d-4c95-9218-58b540cd3cdd/host' failed: 
+(anonymous) @ useWebSocket.tsx:33
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+commitRootImpl @ react-dom.development.js:26974
+commitRoot @ react-dom.development.js:26721
+performSyncWorkOnRoot @ react-dom.development.js:26156
+flushSyncCallbacks @ react-dom.development.js:12042
+(anonymous) @ react-dom.development.js:25690
+useWebSocket.tsx:57  WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.tsx:57
+useWebSocket.tsx:33  WebSocket connection to 'wss://dee0d5b3-af75-47ae-a52b-5c49299e1b1f-00-2hku8s1dd8oob.janeway.replit.dev/ws/game/8a073ce2-e01d-4c95-9218-58b540cd3cdd/host' failed: 
+(anonymous) @ useWebSocket.tsx:33
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+commitRootImpl @ react-dom.development.js:26974
+commitRoot @ react-dom.development.js:26721
+performSyncWorkOnRoot @ react-dom.development.js:26156
+flushSyncCallbacks @ react-dom.development.js:12042
+(anonymous) @ react-dom.development.js:25690
+useWebSocket.tsx:57  WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
+ws.onerror @ useWebSocket.tsx:57
+useWebSocket.tsx:33  WebSocket connection to 'wss://dee0d5b3-af75-47ae-a52b-5c49299e1b1f-00-2hku8s1dd8oob.janeway.replit.dev/ws/game/8a073ce2-e01d-4c95-9218-58b540cd3cdd' failed: 
+(anonymous) @ useWebSocket.tsx:33
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24965
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+performSyncWorkOnRoot @ react-dom.development.js:26115
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+useWebSocket.tsx:57  WebSocket error: Event {isTrusted: true, type: 'error', target: WebSocket, currentTarget: WebSocket, eventPhase: 2, …}
