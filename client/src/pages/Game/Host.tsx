@@ -63,15 +63,23 @@ export default function Host() {
     }
   }, [fetchError]);
 
+  // Handler for manual refresh
+  const { refetch } = useQuery({
+    queryKey: [`/api/games/${gameId}/host`],
+    enabled: false,
+  });
+
   // Handle websocket messages
   useEffect(() => {
     if (lastMessage) {
       try {
         const data = JSON.parse(lastMessage.data);
+        console.log('Received websocket message:', data.type);
         
         // Update game state based on message type
         switch (data.type) {
           case 'game_update':
+            console.log('Updating game state from websocket');
             setGameData(data.game);
             break;
           
@@ -79,6 +87,15 @@ export default function Host() {
             toast({
               title: "Player Joined",
               description: `${data.playerName} joined ${data.groupName}`,
+            });
+            
+            // Immediately fetch the latest game data to ensure we have the new player
+            console.log('Fetching latest game data after player joined');
+            refetch().then(result => {
+              if (result.data) {
+                console.log('Successfully refetched game data after player joined');
+                setGameData(result.data);
+              }
             });
             break;
           
@@ -94,7 +111,7 @@ export default function Host() {
         console.error('Error parsing WebSocket message', e);
       }
     }
-  }, [lastMessage, toast]);
+  }, [lastMessage, toast, refetch]);
 
   // Copy invite link
   const copyInviteLink = () => {

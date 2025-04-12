@@ -25,11 +25,23 @@ export function handleWebSocketConnection(ws: WebSocket, path: string, wss: WebS
 
     // Store connection
     if (!gameConnections.has(gameId)) {
+      console.log(`[WS CONNECT] Creating new connection map for game: ${gameId}`);
       gameConnections.set(gameId, new Map());
     }
+    
+    // Check if this connection already exists
+    const existingConnection = gameConnections.get(gameId)?.get(playerId);
+    if (existingConnection) {
+      console.log(`[WS CONNECT] Replacing existing connection for: ${connectionId}`);
+    }
+    
     gameConnections.get(gameId)?.set(playerId, ws);
-
-    console.log(`WebSocket connected: ${connectionId}`);
+    
+    // Log all connections for this game
+    const connections = gameConnections.get(gameId);
+    const connectedClients = connections ? Array.from(connections.keys()).join(', ') : 'none';
+    console.log(`[WS CONNECT] WebSocket connected: ${connectionId}`);
+    console.log(`[WS CONNECT] Connected clients for game ${gameId}: ${connectedClients}`);
 
     // Handle messages
     ws.on('message', async (message) => {
@@ -82,11 +94,19 @@ export function handleWebSocketConnection(ws: WebSocket, path: string, wss: WebS
 async function sendGameUpdate(gameId: string) {
   try {
     const game = await storage.getGame(gameId);
-    if (!game) return;
+    if (!game) {
+      console.log(`[GAME UPDATE] No game found with ID: ${gameId}`);
+      return;
+    }
 
     const connections = gameConnections.get(gameId);
-    if (!connections) return;
+    if (!connections) {
+      console.log(`[GAME UPDATE] No connections found for game: ${gameId}`);
+      return;
+    }
 
+    console.log(`[GAME UPDATE] Sending update for game: ${gameId}, status: ${game.status}, connections: ${connections.size}`);
+    
     // Prepare host update
     const hostUpdate = {
       type: 'game_update',
@@ -106,7 +126,12 @@ async function sendGameUpdate(gameId: string) {
     // Send update to host
     const hostConnection = connections.get('host');
     if (hostConnection && hostConnection.readyState === WebSocket.OPEN) {
+      console.log(`[GAME UPDATE] Sending update to host for game: ${gameId}`);
       hostConnection.send(JSON.stringify(hostUpdate));
+    } else if (hostConnection) {
+      console.log(`[GAME UPDATE] Host connection exists but not open, state: ${hostConnection.readyState}`);
+    } else {
+      console.log(`[GAME UPDATE] No host connection found for game: ${gameId}`);
     }
 
     // Send updates to players
@@ -537,15 +562,25 @@ export async function joinGame(req: Request, res: Response) {
       groupName: result.groupName
     });
     
+    // DEBUG: Log connections info
+    console.log(`[JOIN GAME] GameID: ${gameId}, New player: ${displayName.trim()}`);
+    
     // Notify all connected clients about the new player
     const connections = gameConnections.get(gameId);
     if (connections) {
+      console.log(`[JOIN GAME] Number of connections for game ${gameId}: ${connections.size}`);
+      
       // Send to all connected clients
-      for (const [_, connection] of connections.entries()) {
+      for (const [clientId, connection] of connections.entries()) {
         if (connection.readyState === WebSocket.OPEN) {
+          console.log(`[JOIN GAME] Sending player_joined to client: ${clientId}`);
           connection.send(playerJoinedMessage);
+        } else {
+          console.log(`[JOIN GAME] Connection not open for client: ${clientId}, state: ${connection.readyState}`);
         }
       }
+    } else {
+      console.log(`[JOIN GAME] No connections found for game ${gameId}`);
     }
     
     // Also send a full game update to all clients
