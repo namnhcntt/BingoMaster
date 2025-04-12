@@ -22,7 +22,7 @@ export default function Host() {
   const { toast } = useToast();
   
   // State
-  const [gameData, setGameData] = useState(null);
+  const [gameData, setGameData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState('');
 
@@ -52,14 +52,17 @@ export default function Host() {
   // Handle initial data load
   useEffect(() => {
     if (initialData) {
-      setGameData(initialData);
+      setGameData(initialData as any);
     }
   }, [initialData]);
 
   // Handle fetch errors
   useEffect(() => {
     if (fetchError) {
-      setError(fetchError.message);
+      const errorMessage = typeof fetchError === 'object' && fetchError !== null && 'message' in fetchError 
+        ? (fetchError as any).message 
+        : 'An unknown error occurred';
+      setError(errorMessage);
     }
   }, [fetchError]);
 
@@ -80,7 +83,9 @@ export default function Host() {
         switch (data.type) {
           case 'game_update':
             console.log('Updating game state from websocket');
-            setGameData(data.game);
+            if (data.game) {
+              setGameData(data.game as any);
+            }
             break;
           
           case 'player_joined':
@@ -94,7 +99,7 @@ export default function Host() {
             refetch().then(result => {
               if (result.data) {
                 console.log('Successfully refetched game data after player joined');
-                setGameData(result.data);
+                setGameData(result.data as any);
               }
             });
             break;
@@ -102,7 +107,7 @@ export default function Host() {
           case 'error':
             toast({
               title: "Error",
-              description: data.message,
+              description: data.message || 'An unknown error occurred',
               variant: "destructive",
             });
             break;
@@ -250,7 +255,7 @@ export default function Host() {
                 </div>
               ) : (
                 <GamePlayView
-                  gameId={gameId}
+                  gameId={gameId || ''}
                   isHost={true}
                   gameData={{
                     ...gameData,
