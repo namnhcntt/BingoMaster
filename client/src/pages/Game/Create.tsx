@@ -12,18 +12,8 @@ export default function Create() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [redirectToGame, setRedirectToGame] = useState<string | null>(null);
-
-  // Redirect to login if not authenticated
-  if (!user) {
-    return <Redirect to="/login" />;
-  }
-
-  // Redirect to game host page if game was created
-  if (redirectToGame) {
-    return <Redirect to={`/game/host/${redirectToGame}`} />;
-  }
-
-  // Create game mutation
+  
+  // Create game mutation - moved up before any conditional returns
   const createGameMutation = useMutation({
     mutationFn: async (data: { settings: any, questions: any[] }) => {
       const response = await apiRequest('POST', '/api/games', data);
@@ -44,6 +34,16 @@ export default function Create() {
       });
     },
   });
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  // Redirect to game host page if game was created
+  if (redirectToGame) {
+    return <Redirect to={`/game/host/${redirectToGame}`} />;
+  }
 
   // Handle wizard completion
   const handleWizardComplete = (settings: any, questions: any[]) => {
