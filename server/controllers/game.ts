@@ -381,6 +381,23 @@ async function handleHostSelection(gameId: string, cellId: string, position: str
     if (!game) throw new Error('Game not found');
     if (game.status !== 'active') throw new Error('Game is not active');
     
+    // Find the cell data in any of the group boards
+    let selectedCellData = null;
+    for (const group of game.groups) {
+      const foundCell = group.board.find(cell => cell.position === position);
+      if (foundCell) {
+        selectedCellData = foundCell;
+        break;
+      }
+    }
+    
+    if (!selectedCellData) {
+      console.error(`Cell with position ${position} not found in any group board`);
+    }
+    
+    // Get the current question
+    const currentQuestion = game.currentQuestion || null;
+    
     // Clear previous answer tracking for this game
     if (!gameAnswers.has(gameId)) {
       gameAnswers.set(gameId, new Map());
@@ -401,11 +418,29 @@ async function handleHostSelection(gameId: string, cellId: string, position: str
     
     for (const [playerId, connection] of connections.entries()) {
       if (connection.readyState === WebSocket.OPEN && playerId !== 'host') {
+        // Find the player's group
+        let playerGroup = null;
+        for (const group of game.groups) {
+          if (group.players.some(player => player.id === playerId)) {
+            playerGroup = group;
+            break;
+          }
+        }
+        
+        // If we found the player's group, find their specific board cell
+        let playerCell = null;
+        if (playerGroup) {
+          playerCell = playerGroup.board.find(cell => cell.position === position);
+        }
+        
+        // Send the message with additional data
         connection.send(JSON.stringify({
           type: 'host_selected',
           cellId,
           position,
-          timeLimit
+          timeLimit,
+          content: playerCell ? playerCell.content : '',
+          question: currentQuestion
         }));
       }
     }

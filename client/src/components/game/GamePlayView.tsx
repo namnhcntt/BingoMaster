@@ -16,12 +16,21 @@ export interface GamePlayer {
   avatar?: string;
 }
 
+export interface BoardCell {
+  id: string;
+  position: string;
+  content: string;
+  answer: string;
+  correct: boolean;
+}
+
 export interface GameGroup {
   id: string;
   name: string;
   players: GamePlayer[];
   hasBingo: boolean;
   bingoPattern?: string[];
+  board?: BoardCell[];
 }
 
 export interface GameQuestion {
@@ -82,20 +91,35 @@ export default function GamePlayView({
 
   // Initialize board cells
   useEffect(() => {
-    if (gameData && gameData.boardSize) {
-      const initialCells: BingoBoardCell[] = [];
-      for (let i = 0; i < gameData.boardSize; i++) {
-        for (let j = 0; j < gameData.boardSize; j++) {
-          const position = `${String.fromCharCode(65 + i)}${j + 1}`;
-          initialCells.push({
-            id: `cell-${position}`,
-            position,
-            content: '',
-            state: 'default'
-          });
+    if (gameData && gameData.boardSize && gameData.currentGroup?.board) {
+      // Use the actual board data from the current group if available
+      const groupCells = gameData.currentGroup.board.map(cell => ({
+        id: cell.id,
+        position: cell.position,
+        content: cell.content,
+        state: cell.correct ? 'correct' as const : 'default' as const,
+        answer: cell.answer,
+        question: cell.answer
+      }));
+      
+      if (groupCells.length > 0) {
+        setBingoCells(groupCells);
+      } else {
+        // Fallback to empty cells if no board data is available
+        const initialCells: BingoBoardCell[] = [];
+        for (let i = 0; i < gameData.boardSize; i++) {
+          for (let j = 0; j < gameData.boardSize; j++) {
+            const position = `${String.fromCharCode(65 + i)}${j + 1}`;
+            initialCells.push({
+              id: `cell-${position}`,
+              position,
+              content: '',
+              state: 'default'
+            });
+          }
         }
+        setBingoCells(initialCells);
       }
-      setBingoCells(initialCells);
     }
   }, [gameData]);
 
@@ -106,6 +130,41 @@ export default function GamePlayView({
         const data = JSON.parse(lastMessage.data);
         
         switch (data.type) {
+          case 'host_selected':
+            // The host has selected a cell, update the board
+            const cellToHighlight = bingoCells.find(cell => cell.position === data.position);
+            if (cellToHighlight) {
+              setSelectedCellId(cellToHighlight.id);
+              setSelectedCell(cellToHighlight);
+              setAnswerTimeoutActive(true);
+              setTimeLeft(data.timeLimit);
+              
+              // Update cell state to indicate selection
+              setBingoCells(prev => prev.map(cell => ({
+                ...cell,
+                state: cell.position === data.position ? 'selected' as const : cell.state
+              })));
+              
+              // If the message contains a question, show it
+              if (data.question) {
+                setCurrentQuestion(data.question);
+              }
+              
+              // If the message contains content (answer), update the cell content
+              if (data.content) {
+                setBingoCells(prev => prev.map(cell => {
+                  if (cell.position === data.position) {
+                    return {
+                      ...cell,
+                      content: data.content
+                    };
+                  }
+                  return cell;
+                }));
+              }
+            }
+            break;
+            
           case 'question':
             // Store previous question
             if (currentQuestion) {
@@ -136,7 +195,7 @@ export default function GamePlayView({
                 return {
                   ...cell,
                   content: data.content,
-                  state: data.correct ? 'correct' : 'incorrect',
+                  state: data.correct ? 'correct' as const : 'incorrect' as const,
                   answer: data.answer || '',
                   question: data.question || ''
                 };
@@ -241,23 +300,46 @@ export default function GamePlayView({
   const handleCellClick = (cell: BingoBoardCell) => {
     if (isHost) {
       // Host selecting a cell to reveal question for
-      if (gameData.status !== 'active' || cell.state !== 'default') return;
-
-      // Toggle selection
-      const newSelectedCell = cell.id === selectedCellId ? null : cell;
-      setSelectedCell(newSelectedCell);
-      setSelectedCellId(newSelectedCell ? newSelectedCell.id : null);
+      if (gameData.status !== 'active') return;
+      
+      // Don't allow selecting cells that are already revealed (correct or incorrect)
+      if (cell.state === 'correct' || cell.state === 'incorrect') return;
+      
+      // Don't allow selecting a new cell while countdown is active
+      if (answerTimeoutActive && cell.id !== selectedCellId) return;
+      
+      // Only allow toggling current selection if countdown is not active
+      if (cell.id === selectedCellId && !answerTimeoutActive) {
+        setSelectedCell(null);
+        setSelectedCellId(null);
+        
+        // Reset the cell state to default
+        setBingoCells(prev => prev.map(c => ({
+          ...c,
+          state: c.id === cell.id ? 'default' : c.state
+        })));
+        
+        return;
+      }
+      
+      // Don't reselect the same cell
+      if (cell.id === selectedCellId) return;
+      
+      // Select a new cell
+      setSelectedCell(cell);
+      setSelectedCellId(cell.id);
       
       // Update local board state for visual feedback
       setBingoCells(prev => prev.map(c => ({
         ...c,
-        state: c.id === cell.id ? 
-          (c.id === selectedCellId ? 'default' : 'selected') : 
-          (c.id === selectedCellId ? 'default' : c.state)
+        state: c.id === cell.id ? 'selected' : c.state
       })));
     } else {
       // Player selecting an answer
       if (!currentQuestion || !onAnswerSelect || !answerTimeoutActive) return;
+      
+      // Don't allow selecting cells that are already revealed
+      if (cell.state === 'correct' || cell.state === 'incorrect') return;
       
       // Toggle selection
       const newCellId = cell.id === selectedCellId ? null : cell.id;
