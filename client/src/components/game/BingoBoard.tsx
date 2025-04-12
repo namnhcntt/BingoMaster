@@ -7,6 +7,8 @@ export interface BingoBoardCell {
   content: string;
   state: CellState;
   answer?: string;
+  question?: string;
+  isPreviousQuestion?: boolean;
 }
 
 interface BingoBoardProps {
@@ -16,6 +18,8 @@ interface BingoBoardProps {
   animate?: boolean;
   onCellClick?: (cell: BingoBoardCell) => void;
   winningPattern?: string[];
+  isHost?: boolean;
+  previousQuestionPosition?: string;
 }
 
 export function BingoBoard({
@@ -24,7 +28,9 @@ export function BingoBoard({
   cellSize = 'medium',
   animate = false,
   onCellClick,
-  winningPattern = []
+  winningPattern = [],
+  isHost = false,
+  previousQuestionPosition = ''
 }: BingoBoardProps) {
   // Get proper grid columns based on board size
   const getGridColumnsClass = (size: number) => {
@@ -54,6 +60,10 @@ export function BingoBoard({
             size={cellSize}
             animate={animate}
             onClick={() => onCellClick && onCellClick(cell)}
+            isHost={isHost}
+            question={cell.question}
+            answer={cell.answer}
+            isPreviousQuestion={cell.position === previousQuestionPosition}
           />
         ))}
       </div>
