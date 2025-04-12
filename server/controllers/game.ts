@@ -528,20 +528,28 @@ export async function joinGame(req: Request, res: Response) {
     // Add player to the game (will be assigned to a group)
     const result = await storage.addPlayerToGame(gameId, displayName.trim());
     
-    // Notify host of new player
+    // Create message for player joined event
+    const playerJoinedMessage = JSON.stringify({
+      type: 'player_joined',
+      playerId: result.playerId,
+      playerName: displayName.trim(),
+      groupId: result.groupId,
+      groupName: result.groupName
+    });
+    
+    // Notify all connected clients about the new player
     const connections = gameConnections.get(gameId);
     if (connections) {
-      const hostConnection = connections.get('host');
-      if (hostConnection && hostConnection.readyState === WebSocket.OPEN) {
-        hostConnection.send(JSON.stringify({
-          type: 'player_joined',
-          playerId: result.playerId,
-          playerName: displayName.trim(),
-          groupId: result.groupId,
-          groupName: result.groupName
-        }));
+      // Send to all connected clients
+      for (const [_, connection] of connections.entries()) {
+        if (connection.readyState === WebSocket.OPEN) {
+          connection.send(playerJoinedMessage);
+        }
       }
     }
+    
+    // Also send a full game update to all clients
+    await sendGameUpdate(gameId);
 
     return res.status(200).json({
       playerId: result.playerId,
