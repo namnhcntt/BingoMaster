@@ -36,7 +36,12 @@ export default function GameCreationWizard({ onComplete }: GameCreationWizardPro
 
   // Handle settings form submission
   function onSettingsSubmit(data: z.infer<typeof gameSettingsSchema>) {
-    setGameSettings(data);
+    // Ensure answerTime is a proper number
+    const validatedData = {
+      ...data,
+      answerTime: Number(data.answerTime)
+    };
+    setGameSettings(validatedData);
     setCurrentStep('questions');
   }
 
@@ -209,7 +214,9 @@ export default function GameCreationWizard({ onComplete }: GameCreationWizardPro
                             step="5" 
                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                             value={field.value}
-                            onChange={field.onChange}
+                            onChange={(e) => {
+                              field.onChange(parseInt(e.target.value, 10));
+                            }}
                           />
                           <div className="absolute -top-8 left-0 right-0 flex justify-between px-2">
                             <span>5s</span>
