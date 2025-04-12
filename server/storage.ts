@@ -2,27 +2,19 @@ import { randomUUID } from 'crypto';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { shuffleArray, createPositionGrid } from '../client/src/lib/utils';
+import session from 'express-session';
+import { User as SchemaUser, Provider as SchemaProvider } from '@shared/schema'; 
 
 // Mock data for in-memory storage
-interface User {
-  id: number;
-  email: string;
-  password: string;
-  displayName: string;
-  isAdmin: boolean;
-  createdAt: string;
-  lastLoginAt?: string;
+interface User extends Omit<SchemaUser, 'createdAt' | 'lastLoginAt'> {
+  createdAt: string | Date;
+  lastLoginAt?: string | Date | null;
 }
 
-interface Provider {
-  id: string;
-  name: string;
-  type: string;
-  apiKey: string;
-  apiEndpoint?: string;
-  description?: string;
-  isActive: boolean;
-  createdAt: string;
+interface Provider extends Omit<SchemaProvider, 'createdAt' | 'apiEndpoint' | 'description'> {
+  createdAt: string | Date;
+  apiEndpoint?: string | null;
+  description?: string | null;
 }
 
 interface Game {
@@ -69,15 +61,18 @@ interface PlayerAnswer {
   groupId: string;
   cellId: string;
   position: string;
-  timestamp: number;
+  timestamp: number | Date;
 }
 
 // Storage interface
 export interface IStorage {
+  // Session store for Express
+  sessionStore: session.Store;
+  
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User>;
+  createUser(user: Omit<User, 'id' | 'createdAt' | 'lastLoginAt'>): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User>;
   deleteUser(id: number): Promise<void>;
   updateUserLastLogin(id: number): Promise<void>;
@@ -147,6 +142,7 @@ export class MemStorage implements IStorage {
   private games: Map<string, Game>;
   private playerAnswers: Map<string, PlayerAnswer[]>;
   private currentUserId: number;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -154,6 +150,12 @@ export class MemStorage implements IStorage {
     this.games = new Map();
     this.playerAnswers = new Map();
     this.currentUserId = 1;
+    
+    // Set up memory-based session store
+    const MemoryStore = require('memorystore')(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000, // Prune expired entries every 24h
+    });
     
     // Create default admin
     this.createUser({
@@ -657,4 +659,7 @@ export function generateRandomPassword(length: number = 12): string {
 }
 
 // Export storage instance
-export const storage = new MemStorage();
+import { DatabaseStorage } from './dbStorage';
+
+// Use DatabaseStorage for database persistence
+export const storage = new DatabaseStorage();
