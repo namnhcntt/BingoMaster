@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CheckIcon, TimerIcon, XIcon } from 'lucide-react';
+import { CheckIcon, TimerIcon, XIcon, UserIcon } from 'lucide-react';
 import BingoBoard, { BingoBoardCell } from './BingoBoard';
 import QuestionDisplay from './QuestionDisplay';
 import BingoAchievementModal, { BingoGroupResult } from './BingoAchievementModal';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface GamePlayer {
   id: string;
@@ -27,6 +28,7 @@ export interface GameQuestion {
   id: string;
   question: string;
   timeLimit: number;
+  answer?: string;
 }
 
 export interface AnswerOption {
@@ -34,6 +36,7 @@ export interface AnswerOption {
   position: string;
   content: string;
   votes: number;
+  voters?: string[]; // Player IDs who voted for this option
 }
 
 interface GamePlayViewProps {
@@ -47,6 +50,7 @@ interface GamePlayViewProps {
     boardSize: number;
     cellSize: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
     currentGroup?: GameGroup;
+    answerTime?: number;
   };
   onAnswerSelect?: (cellId: string) => void;
 }
@@ -59,7 +63,11 @@ export default function GamePlayView({
   onAnswerSelect
 }: GamePlayViewProps) {
   const [currentQuestion, setCurrentQuestion] = useState<GameQuestion | null>(null);
+  const [previousQuestion, setPreviousQuestion] = useState<GameQuestion | null>(null);
+  const [previousQuestionPosition, setPreviousQuestionPosition] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [answerTimeoutActive, setAnswerTimeoutActive] = useState<boolean>(false);
+  const [selectedCell, setSelectedCell] = useState<BingoBoardCell | null>(null);
   const [bingoCells, setBingoCells] = useState<BingoBoardCell[]>([]);
   const [answerOptions, setAnswerOptions] = useState<AnswerOption[]>([]);
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
@@ -67,6 +75,7 @@ export default function GamePlayView({
     show: false,
     result: null
   });
+  const [playerVotes, setPlayerVotes] = useState<Map<string, string>>(new Map()); // playerId -> cellId
 
   // WebSocket connection
   const { socket, lastMessage, sendMessage, connectionStatus } = useWebSocket(`/ws/game/${gameId}`);
@@ -98,9 +107,22 @@ export default function GamePlayView({
         
         switch (data.type) {
           case 'question':
+            // Store previous question
+            if (currentQuestion) {
+              setPreviousQuestion(currentQuestion);
+              // Find the cell that was selected for the previous question
+              const selectedCell = bingoCells.find(cell => cell.id === selectedCellId);
+              if (selectedCell) {
+                setPreviousQuestionPosition(selectedCell.position);
+              }
+            }
+            
+            // Set new question
             setCurrentQuestion(data.question);
             setTimeLeft(data.question.timeLimit);
-            setAnswerOptions(data.options);
+            setAnswerOptions(data.options || []);
+            setSelectedCellId(null); // Reset selection for new question
+            setAnswerTimeoutActive(false);
             break;
           
           case 'timer':
@@ -114,7 +136,9 @@ export default function GamePlayView({
                 return {
                   ...cell,
                   content: data.content,
-                  state: data.correct ? 'correct' : 'incorrect'
+                  state: data.correct ? 'correct' : 'incorrect',
+                  answer: data.answer || '',
+                  question: data.question || ''
                 };
               }
               return cell;
@@ -138,61 +162,137 @@ export default function GamePlayView({
             // Update the entire board state
             setBingoCells(data.cells);
             break;
+            
+          case 'player_vote':
+            // Update player votes in real-time
+            const newVotes = new Map(playerVotes);
+            newVotes.set(data.playerId, data.cellId);
+            setPlayerVotes(newVotes);
+            
+            // Update answer options with new vote counts
+            if (data.options) {
+              setAnswerOptions(data.options);
+            }
+            break;
         }
       } catch (e) {
         console.error('Error parsing WebSocket message', e);
       }
     }
-  }, [lastMessage, gameData.boardSize]);
+  }, [lastMessage, gameData.boardSize, bingoCells, selectedCellId, currentQuestion, playerVotes]);
 
-  // Timer countdown
+  // Timer countdown for question time
   useEffect(() => {
     if (timeLeft <= 0 || !currentQuestion) return;
     
     const timerId = setInterval(() => {
-      setTimeLeft(prev => Math.max(0, prev - 1));
+      setTimeLeft(prev => {
+        const newTime = Math.max(0, prev - 1);
+        if (newTime === 0 && isHost) {
+          // Auto-proceed to revealing the answer if timer hits zero (host only)
+          handleRevealAnswer();
+        }
+        return newTime;
+      });
     }, 1000);
     
     return () => clearInterval(timerId);
-  }, [timeLeft, currentQuestion]);
+  }, [timeLeft, currentQuestion, isHost]);
+
+  // Start answer timeout when host selects a cell
+  useEffect(() => {
+    if (isHost && selectedCell && !answerTimeoutActive && gameData.answerTime) {
+      setAnswerTimeoutActive(true);
+      setTimeLeft(gameData.answerTime);
+
+      // Broadcast to all clients that the host has selected a cell
+      if (socket && connectionStatus === 'Open') {
+        sendMessage(JSON.stringify({
+          type: 'host_selected',
+          gameId,
+          cellId: selectedCell.id,
+          position: selectedCell.position,
+          timeLimit: gameData.answerTime
+        }));
+      }
+    }
+  }, [isHost, selectedCell, answerTimeoutActive, gameData.answerTime, socket, connectionStatus, sendMessage, gameId]);
+
+  // Automatically handle the reveal after answer time expires
+  const handleRevealAnswer = () => {
+    if (!isHost || !selectedCell) return;
+    
+    // Send selected cell to server to reveal answer
+    if (socket && connectionStatus === 'Open') {
+      sendMessage(JSON.stringify({
+        type: 'reveal_answer',
+        gameId,
+        cellId: selectedCell.id,
+        position: selectedCell.position
+      }));
+    }
+    
+    // Reset the selected cell after revealing
+    setSelectedCell(null);
+    setAnswerTimeoutActive(false);
+  };
 
   // Handle cell click
   const handleCellClick = (cell: BingoBoardCell) => {
-    if (!currentQuestion || !onAnswerSelect) return;
-    
-    // Toggle selection
-    const newCellId = cell.id === selectedCellId ? null : cell.id;
-    setSelectedCellId(newCellId);
-    
-    // Update local board state for visual feedback
-    setBingoCells(prev => prev.map(c => {
-      if (c.id === cell.id) {
-        return {
-          ...c,
-          state: c.id === selectedCellId ? 'default' : 'selected'
-        };
-      }
-      if (c.id === selectedCellId) {
-        return {
-          ...c,
-          state: 'default'
-        };
-      }
-      return c;
-    }));
-    
-    // Send selection to server
-    if (newCellId) {
-      onAnswerSelect(cell.id);
+    if (isHost) {
+      // Host selecting a cell to reveal question for
+      if (gameData.status !== 'active' || cell.state !== 'default') return;
+
+      // Toggle selection
+      const newSelectedCell = cell.id === selectedCellId ? null : cell;
+      setSelectedCell(newSelectedCell);
+      setSelectedCellId(newSelectedCell ? newSelectedCell.id : null);
       
-      if (socket && connectionStatus === 'Open') {
-        sendMessage(JSON.stringify({
-          type: 'answer_select',
-          playerId: currentPlayerId,
-          gameId,
-          cellId: cell.id,
-          position: cell.position
-        }));
+      // Update local board state for visual feedback
+      setBingoCells(prev => prev.map(c => ({
+        ...c,
+        state: c.id === cell.id ? 
+          (c.id === selectedCellId ? 'default' : 'selected') : 
+          (c.id === selectedCellId ? 'default' : c.state)
+      })));
+    } else {
+      // Player selecting an answer
+      if (!currentQuestion || !onAnswerSelect || !answerTimeoutActive) return;
+      
+      // Toggle selection
+      const newCellId = cell.id === selectedCellId ? null : cell.id;
+      setSelectedCellId(newCellId);
+      
+      // Update local board state for visual feedback
+      setBingoCells(prev => prev.map(c => {
+        if (c.id === cell.id) {
+          return {
+            ...c,
+            state: c.id === selectedCellId ? 'default' : 'selected'
+          };
+        }
+        if (c.id === selectedCellId) {
+          return {
+            ...c,
+            state: 'default'
+          };
+        }
+        return c;
+      }));
+      
+      // Send selection to server
+      if (newCellId && onAnswerSelect) {
+        onAnswerSelect(cell.id);
+        
+        if (socket && connectionStatus === 'Open') {
+          sendMessage(JSON.stringify({
+            type: 'answer_select',
+            playerId: currentPlayerId,
+            gameId,
+            cellId: cell.id,
+            position: cell.position
+          }));
+        }
       }
     }
   };
@@ -217,6 +317,16 @@ export default function GamePlayView({
     }
   };
 
+  // Calculate voter list for display
+  const getVotersForOption = (option: AnswerOption) => {
+    if (!option.voters) return [];
+    
+    return option.voters.map(voterId => {
+      const player = gameData.currentGroup?.players.find(p => p.id === voterId);
+      return player ? player.name : 'Unknown Player';
+    });
+  };
+
   return (
     <>
       <Card className="shadow-lg">
@@ -239,7 +349,7 @@ export default function GamePlayView({
                     <AvatarFallback>{player.name.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 ))}
-                {gameData.currentGroup?.players.length > 3 && (
+                {gameData.currentGroup?.players && gameData.currentGroup.players.length > 3 && (
                   <div className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-600 text-xs font-medium text-white border-2 border-white dark:border-gray-700">
                     +{gameData.currentGroup.players.length - 3}
                   </div>
@@ -262,12 +372,17 @@ export default function GamePlayView({
           </div>
         </CardHeader>
         
-        {/* Current Question Display */}
-        {currentQuestion && (
+        {/* Current Question or Timer Display */}
+        {(currentQuestion || answerTimeoutActive) && (
           <div className="p-3 sm:p-4 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
             <div className="mb-2 sm:mb-3 flex justify-between items-center">
               <div className="flex items-center">
-                <Badge variant="default">Question {currentQuestion.id}</Badge>
+                {currentQuestion && (
+                  <Badge variant="default">Question {currentQuestion.id}</Badge>
+                )}
+                {answerTimeoutActive && (
+                  <Badge variant="secondary" className="ml-2">Answer Time</Badge>
+                )}
               </div>
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <div className={`countdown-timer ${timeLeft <= 5 ? 'countdown-timer-low' : ''}`}>
@@ -277,9 +392,22 @@ export default function GamePlayView({
               </div>
             </div>
             
-            <div className="max-w-screen-sm mx-auto">
-              <QuestionDisplay question={currentQuestion.question} />
-            </div>
+            {currentQuestion && (
+              <div className="max-w-screen-sm mx-auto">
+                <QuestionDisplay question={currentQuestion.question} />
+              </div>
+            )}
+            
+            {answerTimeoutActive && selectedCell && (
+              <div className="max-w-screen-sm mx-auto mt-4 bg-white dark:bg-gray-700 p-4 rounded-lg shadow-md">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Select your answer:
+                </h3>
+                <p className="text-md text-gray-700 dark:text-gray-300">
+                  Cell {selectedCell.position} has been selected by the host.
+                </p>
+              </div>
+            )}
           </div>
         )}
         
@@ -293,6 +421,8 @@ export default function GamePlayView({
               animate={true}
               onCellClick={handleCellClick}
               winningPattern={gameData.currentGroup?.bingoPattern}
+              isHost={isHost}
+              previousQuestionPosition={previousQuestionPosition}
             />
           </div>
           
@@ -302,36 +432,59 @@ export default function GamePlayView({
               <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">Group Consensus</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {answerOptions.map(option => {
-                  const totalPlayers = gameData.currentGroup?.players.length || 1;
+                  const totalPlayers = gameData.currentGroup?.players?.length || 1;
                   const percentage = (option.votes / totalPlayers) * 100;
+                  const voters = option.voters || [];
                   
                   return (
-                    <div key={option.id} className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm text-sm">
-                      <div className={`font-game font-medium mb-0.5 text-xs ${
-                        option.position === selectedCellId 
-                          ? 'text-primary-600 dark:text-primary-400'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}>
-                        {option.content}
-                      </div>
-                      <div className="flex items-center">
-                        <div className={`h-3 rounded-full flex-1 mr-1 overflow-hidden ${
-                          option.position === selectedCellId
-                            ? 'bg-primary-100 dark:bg-primary-900'
-                            : 'bg-gray-100 dark:bg-gray-700'
-                        }`}>
-                          <div 
-                            className={`h-full rounded-full ${
-                              option.position === selectedCellId
-                                ? 'bg-primary-500'
-                                : 'bg-gray-400'
-                            }`} 
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs font-medium whitespace-nowrap">{option.votes}/{totalPlayers}</span>
-                      </div>
-                    </div>
+                    <TooltipProvider key={option.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm text-sm cursor-help">
+                            <div className={`font-game font-medium mb-0.5 text-xs ${
+                              option.position === selectedCellId 
+                                ? 'text-primary-600 dark:text-primary-400'
+                                : 'text-gray-700 dark:text-gray-300'
+                            }`}>
+                              {option.content}
+                            </div>
+                            <div className="flex items-center">
+                              <div className={`h-3 rounded-full flex-1 mr-1 overflow-hidden ${
+                                option.position === selectedCellId
+                                  ? 'bg-primary-100 dark:bg-primary-900'
+                                  : 'bg-gray-100 dark:bg-gray-700'
+                              }`}>
+                                <div 
+                                  className={`h-full rounded-full ${
+                                    option.position === selectedCellId
+                                      ? 'bg-primary-500'
+                                      : 'bg-gray-400'
+                                  }`} 
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs font-medium whitespace-nowrap">
+                                {option.votes}/{totalPlayers}
+                              </span>
+                            </div>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="center" className="bg-white dark:bg-gray-800 p-2 shadow-md text-xs">
+                          {voters.length > 0 ? (
+                            <div className="space-y-1">
+                              <div className="font-semibold">Voted by:</div>
+                              <ul className="list-disc pl-4 space-y-1">
+                                {voters.map((voter, idx) => (
+                                  <li key={idx}>{voter}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : (
+                            <span>No votes yet</span>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })}
               </div>

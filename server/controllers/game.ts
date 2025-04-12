@@ -62,6 +62,15 @@ export function handleWebSocketConnection(ws: WebSocket, path: string, wss: WebS
           case 'select_answer':
             await handleSelectAnswer(gameId, data.playerId, data.cellId);
             break;
+          case 'host_selected':
+            await handleHostSelection(gameId, data.cellId, data.position, data.timeLimit);
+            break;
+          case 'reveal_answer':
+            await handleRevealAnswer(gameId, data.cellId, data.position);
+            break;
+          case 'answer_select':
+            await handlePlayerAnswer(gameId, data.playerId, data.cellId, data.position);
+            break;
           default:
             console.warn(`Unknown message type: ${data.type}`);
         }
@@ -357,6 +366,234 @@ async function checkGroupConsensus(gameId: string, groupId: string) {
     }
   } catch (error) {
     console.error('Error checking group consensus:', error);
+  }
+}
+
+// Track active player answers for each game
+const gameAnswers = new Map<string, Map<string, Map<string, string>>>(); // gameId -> groupId -> playerId -> cellId
+
+// Handle host selection of a cell
+async function handleHostSelection(gameId: string, cellId: string, position: string, timeLimit: number) {
+  try {
+    console.log(`[HOST SELECTION] Host selected cell ${cellId} in game ${gameId}`);
+    
+    const game = await storage.getGame(gameId);
+    if (!game) throw new Error('Game not found');
+    if (game.status !== 'active') throw new Error('Game is not active');
+    
+    // Clear previous answer tracking for this game
+    if (!gameAnswers.has(gameId)) {
+      gameAnswers.set(gameId, new Map());
+    }
+    
+    // Reset answer tracking for all groups in this game
+    for (const group of game.groups) {
+      if (!gameAnswers.get(gameId)?.has(group.id)) {
+        gameAnswers.get(gameId)?.set(group.id, new Map());
+      } else {
+        gameAnswers.get(gameId)?.get(group.id)?.clear();
+      }
+    }
+    
+    // Send message to all players that host has selected a cell
+    const connections = gameConnections.get(gameId);
+    if (!connections) return;
+    
+    for (const [playerId, connection] of connections.entries()) {
+      if (connection.readyState === WebSocket.OPEN && playerId !== 'host') {
+        connection.send(JSON.stringify({
+          type: 'host_selected',
+          cellId,
+          position,
+          timeLimit
+        }));
+      }
+    }
+    
+    // Start a timer for answer time
+    setTimeout(async () => {
+      // Time's up - automatically reveal the answer
+      await handleRevealAnswer(gameId, cellId, position);
+    }, timeLimit * 1000);
+    
+  } catch (error) {
+    console.error('Error handling host selection:', error);
+  }
+}
+
+// Handle player submitting an answer
+async function handlePlayerAnswer(gameId: string, playerId: string, cellId: string, position: string) {
+  try {
+    console.log(`[PLAYER ANSWER] Player ${playerId} selected ${cellId} in game ${gameId}`);
+    
+    const game = await storage.getGame(gameId);
+    if (!game) throw new Error('Game not found');
+    if (game.status !== 'active') throw new Error('Game is not active');
+    
+    // Find player's group
+    const playerGroup = game.groups.find(group => 
+      group.players.some(player => player.id === playerId)
+    );
+    
+    if (!playerGroup) {
+      throw new Error('Player not found in any group');
+    }
+    
+    // Record player's answer in memory
+    if (!gameAnswers.has(gameId)) {
+      gameAnswers.set(gameId, new Map());
+    }
+    
+    if (!gameAnswers.get(gameId)?.has(playerGroup.id)) {
+      gameAnswers.get(gameId)?.set(playerGroup.id, new Map());
+    }
+    
+    gameAnswers.get(gameId)?.get(playerGroup.id)?.set(playerId, cellId);
+    
+    // Count votes for each option in this group
+    const groupAnswers = gameAnswers.get(gameId)?.get(playerGroup.id);
+    const answerCounts = new Map<string, number>();
+    const voterMap = new Map<string, string[]>(); // cellId -> playerIds
+    
+    if (groupAnswers) {
+      for (const [pid, cid] of groupAnswers.entries()) {
+        // Count votes
+        const count = answerCounts.get(cid) || 0;
+        answerCounts.set(cid, count + 1);
+        
+        // Track voters
+        if (!voterMap.has(cid)) {
+          voterMap.set(cid, []);
+        }
+        voterMap.get(cid)?.push(pid);
+      }
+    }
+    
+    // Create answer options with vote counts and voters
+    const answerOptions = Array.from(answerCounts.entries()).map(([cellId, votes]) => {
+      const cell = game.groups
+        .flatMap(g => g.board)
+        .find(c => c.position === position);
+
+      return {
+        id: cellId,
+        position,
+        content: cell?.content || '',
+        votes,
+        voters: voterMap.get(cellId) || []
+      };
+    });
+    
+    // Update all players in the group about vote status
+    const connections = gameConnections.get(gameId);
+    if (!connections) return;
+    
+    // Send updated vote counts to all players in this group
+    for (const player of playerGroup.players) {
+      const connection = connections.get(player.id);
+      if (connection && connection.readyState === WebSocket.OPEN) {
+        connection.send(JSON.stringify({
+          type: 'player_vote',
+          playerId,
+          cellId,
+          options: answerOptions
+        }));
+      }
+    }
+    
+    // Also send to the host
+    const hostConnection = connections.get('host');
+    if (hostConnection && hostConnection.readyState === WebSocket.OPEN) {
+      hostConnection.send(JSON.stringify({
+        type: 'player_vote',
+        groupId: playerGroup.id,
+        playerId,
+        cellId,
+        options: answerOptions
+      }));
+    }
+    
+  } catch (error) {
+    console.error('Error handling player answer:', error);
+  }
+}
+
+// Handle revealing the answer after answer time expires
+async function handleRevealAnswer(gameId: string, cellId: string, position: string) {
+  try {
+    console.log(`[REVEAL ANSWER] Revealing answer for cell ${cellId} in game ${gameId}`);
+    
+    const game = await storage.getGame(gameId);
+    if (!game) throw new Error('Game not found');
+    if (game.status !== 'active') throw new Error('Game is not active');
+    
+    // Process answers for each group
+    for (const group of game.groups) {
+      const groupAnswers = gameAnswers.get(gameId)?.get(group.id);
+      if (!groupAnswers || groupAnswers.size === 0) continue;
+      
+      // Count answers to find consensus
+      const answerCounts = new Map<string, number>();
+      let mostCommonAnswer = '';
+      let highestCount = 0;
+      let earliestTimestamp = Infinity;
+      
+      // Use in-memory answer tracking
+      for (const [_, cellId] of groupAnswers.entries()) {
+        const count = answerCounts.get(cellId) || 0;
+        answerCounts.set(cellId, count + 1);
+        
+        // If this answer has more votes, or the same votes but came first
+        if (count + 1 > highestCount) {
+          mostCommonAnswer = cellId;
+          highestCount = count + 1;
+        }
+      }
+      
+      // Record consensus answer
+      if (mostCommonAnswer) {
+        await storage.recordPlayerAnswer(gameId, 'group', group.id, mostCommonAnswer);
+        await storage.setGroupAnswer(gameId, group.id, mostCommonAnswer);
+        
+        // Check for Bingo after answer is recorded
+        const correctAnswers = await storage.getGroupCorrectAnswers(gameId, group.id);
+        if (correctAnswers.length >= game.boardSize) {
+          const bingoPattern = checkBingoPattern(correctAnswers.map(a => a.position), game.boardSize);
+          
+          if (bingoPattern) {
+            await storage.setGroupBingo(gameId, group.id, bingoPattern);
+            
+            // Notify all clients about Bingo achievement
+            const connections = gameConnections.get(gameId);
+            if (connections) {
+              const bingoMessage = JSON.stringify({
+                type: 'bingo_achieved',
+                groupId: group.id,
+                groupName: group.name,
+                members: group.players,
+                pattern: bingoPattern,
+                boardSize: game.boardSize
+              });
+              
+              for (const [_, connection] of connections.entries()) {
+                if (connection.readyState === WebSocket.OPEN) {
+                  connection.send(bingoMessage);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Clear answers for this question
+    gameAnswers.get(gameId)?.clear();
+    
+    // Update game state for all clients
+    sendGameUpdate(gameId);
+    
+  } catch (error) {
+    console.error('Error revealing answer:', error);
   }
 }
 
