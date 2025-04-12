@@ -25,12 +25,44 @@ export function useWebSocket(url: string | null): UseWebSocketReturn {
   // Create WebSocket connection
   useEffect(() => {
     if (!url) return;
-
-    // Determine protocol based on the current browser URL
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}${url}`;
     
-    const ws = new WebSocket(wsUrl);
+    // Function to create WebSocket with different URL strategies
+    const createWebSocketConnection = (urlStrategy: number) => {
+      // Determine protocol based on the current browser URL
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      let wsUrl: string;
+      
+      // Try different URL strategies based on the strategy number
+      switch (urlStrategy) {
+        case 1:
+          // Strategy 1: Use window.location.host (default)
+          const baseUrl = window.location.host.split('?')[0];
+          wsUrl = `${protocol}//${baseUrl}${url}`;
+          break;
+          
+        case 2:
+          // Strategy 2: Use only hostname without port
+          wsUrl = `${protocol}//${window.location.hostname}${url}`;
+          break;
+          
+        case 3: 
+          // Strategy 3: Use hostname with explicit port 443 for wss or 80 for ws
+          const port = protocol === 'wss:' ? '443' : '80';
+          wsUrl = `${protocol}//${window.location.hostname}:${port}${url}`;
+          break;
+          
+        default:
+          // Default fallback
+          wsUrl = `${protocol}//${window.location.host}${url}`;
+      }
+      
+      console.log(`Connecting WebSocket (strategy ${urlStrategy}) to:`, wsUrl);
+      return new WebSocket(wsUrl);
+    };
+    
+    // Start with the first strategy
+    let currentStrategy = 1;
+    const ws = createWebSocketConnection(currentStrategy);
     
     ws.onopen = () => {
       setReadyState(ReadyState.Open);
@@ -53,8 +85,55 @@ export function useWebSocket(url: string | null): UseWebSocketReturn {
       setLastMessage(event);
     };
     
+    // Keep track of connection attempts
+    const strategyRef = useRef(currentStrategy);
+    const maxStrategies = 3;
+    
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
+      
+      // Additional error handling and diagnostics
+      try {
+        const testWs = createWebSocketConnection(strategyRef.current);
+        const currentWsUrl = testWs.url;
+        testWs.close();
+        
+        if (strategyRef.current === 1 && (!currentWsUrl || currentWsUrl.includes('undefined'))) {
+          console.error('Invalid WebSocket URL detected. Host information is missing or incorrect.');
+        }
+      } catch (err) {
+        console.error('Error creating test WebSocket connection:', err);
+      }
+      
+      // Try the next strategy if we haven't exhausted all options
+      if (strategyRef.current < maxStrategies) {
+        strategyRef.current++;
+        console.log(`WebSocket connection failed. Trying strategy ${strategyRef.current}...`);
+        
+        try {
+          // Close the current connection attempt
+          ws.close();
+          
+          // Create a new WebSocket with the next strategy
+          const newWs = createWebSocketConnection(strategyRef.current);
+          
+          // Recreate event handlers for the new connection
+          newWs.onopen = ws.onopen;
+          newWs.onclose = ws.onclose;
+          newWs.onmessage = ws.onmessage;
+          newWs.onerror = ws.onerror;
+          
+          // Update the socket state with the new connection
+          setSocket(newWs);
+          setReadyState(ReadyState.Connecting);
+        } catch (e) {
+          console.error('Error during WebSocket fallback attempt:', e);
+          setReadyState(ReadyState.Closed);
+        }
+      } else {
+        console.error('All WebSocket connection strategies failed.');
+        setReadyState(ReadyState.Closed);
+      }
     };
     
     setSocket(ws);
