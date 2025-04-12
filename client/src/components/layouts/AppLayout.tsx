@@ -46,8 +46,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center">
             <div className="flex items-center flex-shrink-0">
-              <Link href="/">
-                <span className="text-3xl font-bold font-game cursor-pointer">
+              <Link href="/" className="cursor-pointer">
+                <span className="text-3xl font-bold font-game">
                   <GamepadIcon className="inline-block mr-2" />
                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-secondary-500">Bingo</span>
                   <span className="text-accent-500">学</span>
@@ -55,15 +55,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </Link>
             </div>
             <nav className="hidden md:ml-10 md:flex space-x-6">
-              <Link href="/">
-                <a className={`font-medium transition ${location === "/" ? "text-primary-500" : "text-gray-600 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"}`}>Home</a>
+              <Link href="/" className={`font-medium transition ${location === "/" ? "text-primary-500" : "text-gray-600 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"}`}>
+                Home
               </Link>
-              <Link href="/game/create">
-                <a className={`font-medium transition ${location === "/game/create" ? "text-primary-500" : "text-gray-600 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"}`}>Create Game</a>
+              <Link href="/game/create" className={`font-medium transition ${location === "/game/create" ? "text-primary-500" : "text-gray-600 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"}`}>
+                Create Game
               </Link>
               {user?.isAdmin && (
-                <Link href="/admin">
-                  <a className={`font-medium transition ${location.startsWith("/admin") ? "text-primary-500" : "text-gray-600 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"}`}>Admin</a>
+                <Link href="/admin" className={`font-medium transition ${location.startsWith("/admin") ? "text-primary-500" : "text-gray-600 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-400"}`}>
+                  Admin
                 </Link>
               )}
             </nav>
@@ -107,7 +107,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href="/login">
+              <Link href="/login" className="inline-block">
                 <Button variant="default">Login</Button>
               </Link>
             )}
@@ -117,38 +117,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Mobile menu */}
         <div className="md:hidden p-2 bg-gray-50 dark:bg-gray-800 border-t dark:border-gray-700">
           <div className="flex justify-around">
-            <Link href="/">
-              <a className={`text-center px-3 py-2 ${location === "/" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
-                <Home className="block mx-auto text-xl" />
-                <span className="text-xs mt-1 block">Home</span>
-              </a>
+            <Link href="/" className={`text-center px-3 py-2 ${location === "/" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
+              <Home className="block mx-auto text-xl" />
+              <span className="text-xs mt-1 block">Home</span>
             </Link>
-            <Link href="/game/create">
-              <a className={`text-center px-3 py-2 ${location === "/game/create" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
-                <GamepadIcon className="block mx-auto text-xl" />
-                <span className="text-xs mt-1 block">My Games</span>
-              </a>
+            <Link href="/game/create" className={`text-center px-3 py-2 ${location === "/game/create" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
+              <GamepadIcon className="block mx-auto text-xl" />
+              <span className="text-xs mt-1 block">My Games</span>
             </Link>
             {user?.isAdmin ? (
-              <Link href="/admin">
-                <a className={`text-center px-3 py-2 ${location.startsWith("/admin") ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
-                  <Users className="block mx-auto text-xl" />
-                  <span className="text-xs mt-1 block">Admin</span>
-                </a>
+              <Link href="/admin" className={`text-center px-3 py-2 ${location.startsWith("/admin") ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
+                <Users className="block mx-auto text-xl" />
+                <span className="text-xs mt-1 block">Admin</span>
               </Link>
             ) : (
-              <Link href="/join">
-                <a className={`text-center px-3 py-2 ${location === "/join" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
-                  <UserPlus className="block mx-auto text-xl" />
-                  <span className="text-xs mt-1 block">Join</span>
-                </a>
+              <Link href="/join" className={`text-center px-3 py-2 ${location === "/join" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
+                <UserPlus className="block mx-auto text-xl" />
+                <span className="text-xs mt-1 block">Join</span>
               </Link>
             )}
-            <Link href="/about">
-              <a className={`text-center px-3 py-2 ${location === "/about" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
-                <Info className="block mx-auto text-xl" />
-                <span className="text-xs mt-1 block">About</span>
-              </a>
+            <Link href="/about" className={`text-center px-3 py-2 ${location === "/about" ? "text-primary-500" : "text-gray-600 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-400"}`}>
+              <Info className="block mx-auto text-xl" />
+              <span className="text-xs mt-1 block">About</span>
             </Link>
           </div>
         </div>
