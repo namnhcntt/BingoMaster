@@ -21,11 +21,11 @@ export function BingoBoardCell({
   ...props 
 }: BingoBoardCellProps) {
   const sizeClasses = {
-    small: 'text-xs',
-    medium: 'text-sm',
-    large: 'text-base',
-    xlarge: 'text-lg',
-    xxlarge: 'text-xl'
+    small: 'text-xs min-h-[4rem]',
+    medium: 'text-sm min-h-[5rem]',
+    large: 'text-base min-h-[6rem]',
+    xlarge: 'text-lg min-h-[7rem]',
+    xxlarge: 'text-xl min-h-[8rem]'
   };
 
   const stateClasses = {
@@ -49,16 +49,16 @@ export function BingoBoardCell({
         'bingo-cell',
         stateClasses[state],
         animationClass,
+        sizeClasses[size],
         className
       )}
       {...props}
     >
-      <div className={`text-sm ${isActiveState ? 'text-primary-600 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'} mb-1`}>
+      <div className={`text-xs ${isActiveState ? 'text-primary-600 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'} mb-1`}>
         {position}
       </div>
       <div className={cn(
-        'font-game font-medium text-center break-words',
-        sizeClasses[size],
+        'font-game font-medium text-center break-words w-full',
         {
           'text-gray-900 dark:text-white': state === 'default',
           'text-primary-900 dark:text-primary-100': state === 'selected',

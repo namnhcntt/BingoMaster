@@ -26,10 +26,16 @@ export function BingoBoard({
   onCellClick,
   winningPattern = []
 }: BingoBoardProps) {
-  // Compute grid-cols class based on boardSize
-  const gridColsClass = useMemo(() => {
-    return `grid-cols-${boardSize}`;
-  }, [boardSize]);
+  // Get proper grid columns based on board size
+  const getGridColumnsClass = (size: number) => {
+    switch (size) {
+      case 3: return 'grid-cols-3';
+      case 4: return 'grid-cols-4';
+      case 5: return 'grid-cols-5';
+      case 6: return 'grid-cols-6';
+      default: return 'grid-cols-3';
+    }
+  };
 
   // Check if a cell is part of the winning pattern
   const isCellInWinningPattern = (position: string) => {
@@ -37,7 +43,7 @@ export function BingoBoard({
   };
 
   return (
-    <div className={`grid ${gridColsClass} gap-3`}>
+    <div className={`grid ${getGridColumnsClass(boardSize)} gap-3 w-full max-w-full`}>
       {cells.map((cell) => (
         <BingoBoardCell
           key={cell.id}

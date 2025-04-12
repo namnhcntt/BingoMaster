@@ -71,7 +71,8 @@
 
 @layer components {
   .bingo-cell {
-    @apply aspect-square rounded-lg p-2 flex flex-col items-center justify-center transition-all shadow-sm;
+    @apply aspect-square rounded-lg p-2 flex flex-col items-center justify-center transition-all shadow-sm
+           overflow-hidden text-center w-full h-full box-border;
   }
 
   .bingo-cell-default {
