@@ -71,26 +71,27 @@
 
 @layer components {
   .bingo-cell {
-    @apply aspect-square rounded-lg p-2 flex flex-col items-center justify-center transition-all shadow-sm
-           overflow-hidden text-center w-full h-full box-border;
+    @apply aspect-square rounded-lg p-1 sm:p-2 flex flex-col items-center justify-center transition-all shadow-sm
+           overflow-hidden text-center w-full h-full box-border
+           max-h-[5rem];
   }
 
   .bingo-cell-default {
-    @apply bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 
+    @apply bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
            cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600;
   }
 
   .bingo-cell-selected {
-    @apply bg-primary-100 dark:bg-primary-900 border-2 border-primary-500
+    @apply bg-primary-100 dark:bg-primary-900 border border-primary-500
            cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-800;
   }
 
   .bingo-cell-correct {
-    @apply bg-green-100 dark:bg-green-900 border-2 border-green-500;
+    @apply bg-green-100 dark:bg-green-900 border border-green-500;
   }
 
   .bingo-cell-incorrect {
-    @apply bg-red-100 dark:bg-red-900 border-2 border-red-500;
+    @apply bg-red-100 dark:bg-red-900 border border-red-500;
   }
 
   .countdown-timer {

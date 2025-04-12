@@ -247,7 +247,7 @@ export default function GamePlayView({
               </div>
             </div>
             
-            <Badge variant={gameData.status === 'active' ? 'success' : gameData.status === 'waiting' ? 'outline' : 'secondary'} className="flex items-center">
+            <Badge variant={gameData.status === 'active' ? 'default' : gameData.status === 'waiting' ? 'outline' : 'secondary'} className="flex items-center">
               {gameData.status === 'active' ? (
                 <>
                   <span className="h-2 w-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
@@ -264,46 +264,50 @@ export default function GamePlayView({
         
         {/* Current Question Display */}
         {currentQuestion && (
-          <div className="p-6 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
-            <div className="mb-4 flex justify-between items-center">
+          <div className="p-3 sm:p-4 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div className="mb-2 sm:mb-3 flex justify-between items-center">
               <div className="flex items-center">
-                <Badge variant="primary">Question {currentQuestion.id}</Badge>
+                <Badge variant="default">Question {currentQuestion.id}</Badge>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
                 <div className={`countdown-timer ${timeLeft <= 5 ? 'countdown-timer-low' : ''}`}>
                   {timeLeft}
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">seconds remaining</span>
+                <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">sec</span>
               </div>
             </div>
             
-            <QuestionDisplay question={currentQuestion.question} />
+            <div className="max-w-screen-sm mx-auto">
+              <QuestionDisplay question={currentQuestion.question} />
+            </div>
           </div>
         )}
         
         {/* Game Board with Answers */}
-        <CardContent className="p-6">
-          <BingoBoard
-            cells={bingoCells}
-            boardSize={gameData.boardSize}
-            cellSize={gameData.cellSize}
-            animate={true}
-            onCellClick={handleCellClick}
-            winningPattern={gameData.currentGroup?.bingoPattern}
-          />
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="max-w-screen-sm mx-auto">
+            <BingoBoard
+              cells={bingoCells}
+              boardSize={gameData.boardSize}
+              cellSize={gameData.cellSize}
+              animate={true}
+              onCellClick={handleCellClick}
+              winningPattern={gameData.currentGroup?.bingoPattern}
+            />
+          </div>
           
           {/* Group Answer Status */}
           {answerOptions.length > 0 && (
-            <div className="mt-6 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Group Consensus</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-3 max-w-screen-sm mx-auto">
+              <h3 className="text-base font-medium text-gray-900 dark:text-white mb-2">Group Consensus</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {answerOptions.map(option => {
                   const totalPlayers = gameData.currentGroup?.players.length || 1;
                   const percentage = (option.votes / totalPlayers) * 100;
                   
                   return (
-                    <div key={option.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm">
-                      <div className={`font-game font-medium mb-1 ${
+                    <div key={option.id} className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-sm text-sm">
+                      <div className={`font-game font-medium mb-0.5 text-xs ${
                         option.position === selectedCellId 
                           ? 'text-primary-600 dark:text-primary-400'
                           : 'text-gray-700 dark:text-gray-300'
@@ -311,7 +315,7 @@ export default function GamePlayView({
                         {option.content}
                       </div>
                       <div className="flex items-center">
-                        <div className={`h-4 rounded-full flex-1 mr-2 overflow-hidden ${
+                        <div className={`h-3 rounded-full flex-1 mr-1 overflow-hidden ${
                           option.position === selectedCellId
                             ? 'bg-primary-100 dark:bg-primary-900'
                             : 'bg-gray-100 dark:bg-gray-700'
@@ -325,7 +329,7 @@ export default function GamePlayView({
                             style={{ width: `${percentage}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm font-medium">{option.votes}/{totalPlayers}</span>
+                        <span className="text-xs font-medium whitespace-nowrap">{option.votes}/{totalPlayers}</span>
                       </div>
                     </div>
                   );

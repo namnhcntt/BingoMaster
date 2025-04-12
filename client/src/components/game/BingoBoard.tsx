@@ -43,18 +43,20 @@ export function BingoBoard({
   };
 
   return (
-    <div className={`grid ${getGridColumnsClass(boardSize)} gap-3 w-full max-w-full`}>
-      {cells.map((cell) => (
-        <BingoBoardCell
-          key={cell.id}
-          position={cell.position}
-          content={cell.content}
-          state={isCellInWinningPattern(cell.position) ? 'correct' : cell.state}
-          size={cellSize}
-          animate={animate}
-          onClick={() => onCellClick && onCellClick(cell)}
-        />
-      ))}
+    <div className="w-full max-w-full overflow-auto">
+      <div className={`grid ${getGridColumnsClass(boardSize)} gap-1 sm:gap-2 md:gap-3 mx-auto max-w-lg`}>
+        {cells.map((cell) => (
+          <BingoBoardCell
+            key={cell.id}
+            position={cell.position}
+            content={cell.content}
+            state={isCellInWinningPattern(cell.position) ? 'correct' : cell.state}
+            size={cellSize}
+            animate={animate}
+            onClick={() => onCellClick && onCellClick(cell)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
